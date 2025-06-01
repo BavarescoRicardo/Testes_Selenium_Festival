@@ -1,0 +1,46 @@
+[
+  {
+    "nome_responsavel": "João Silva Teste",
+    "email": "joao.teste@email.com",
+    "rg": "1234567",
+    "data_nascimento": "15051990",
+    "genero": "Masculino",
+    "necessidade_especial": false,
+    "qual_necessidade": "",
+    "definir_senha": true,
+    "cpf": "11122233344",
+    "pix": "11122233344",
+    "codigo_banco": "001",
+    "agencia": "1234",
+    "conta": "56789-0"
+  },
+  {
+    "nome_responsavel": "Maria Oliveira Teste",
+    "email": "maria.teste@email.com",
+    "rg": "9876543",
+    "data_nascimento": "20111985",
+    "genero": "Feminino",
+    "necessidade_especial": true,
+    "qual_necessidade": "Cadeirante",
+    "definir_senha": false,
+    "cpf": "55566677788",
+    "pix": "chave_pix_maria@email.com",
+    "codigo_banco": "237",
+    "agencia": "5678",
+    "conta": "12345-6"
+  },
+  {
+    "nome_responsavel": "Carlos Pereira Teste",
+    "email": "carlos.teste@email.com",
+    "rg": "1122334",
+    "data_nascimento": "01032000",
+    "genero": "Outro",
+    "necessidade_especial": false,
+    "qual_necessidade": "",
+    "cpf": "99988877766",
+    "pix": "+5511999998888",
+    "codigo_banco": "341",
+    "agencia": "9012",
+    "conta": "34567-8"
+  }
+]
