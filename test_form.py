@@ -16,9 +16,7 @@ HEADLESS_MODE = True # Set to False for local debugging with UI
 # -------------------
 
 def fill_form(page, data, participant_index=0):
-    # Corrected f-string quotes
-    print(f"Preenchendo formulário com dados: {data['nome_responsavel']}")
-    debug_prefix = f"debug_{data['nome_responsavel'].replace(' ', '_')}_{int(time.time())}"
+    print(f"Preenchendo formulário com dados: {data["nome_responsavel"]}")
 
     print("Preenchendo Etapa 1: Cantor")
     try:
@@ -56,8 +54,7 @@ def fill_form(page, data, participant_index=0):
             page.locator(data_nascimento_selector).fill(date_iso)
             print(f"Campo \"Data de Nascimento\" preenchido com {date_iso}.")
         except ValueError as date_err:
-            # Corrected f-string quotes
-            print(f"ERRO: Falha ao converter data {data['data_nascimento']} para YYYY-MM-DD. Erro: {date_err}")
+            print(f"ERRO: Falha ao converter data {data["data_nascimento"]} para YYYY-MM-DD. Erro: {date_err}")
             raise date_err
         except Exception as date_err:
             print(f"ERRO inesperado ao processar data: {date_err}")
@@ -69,25 +66,20 @@ def fill_form(page, data, participant_index=0):
         print(f"Tentando localizar: {genero_selector}")
         page.wait_for_selector(genero_selector, timeout=10000)
         page.locator(genero_selector).check()
-        # Corrected f-string quotes
-        print(f"Gênero \"{data['genero']}\" selecionado.")
+        print(f"Gênero \"{data["genero"]}\" selecionado.")
 
         # --- Campo: Nº Participantes (MUI Select) ---
         num_participantes = data.get("num_participantes", 1) # Default to 1 if not provided
-        # Locate the clickable element (div with role=combobox)
         select_trigger_selector = f"#individuos-{participant_index}"
         print(f"Tentando localizar seletor de Nº Participantes: {select_trigger_selector}")
         page.wait_for_selector(select_trigger_selector, state="visible", timeout=10000)
         page.locator(select_trigger_selector).click()
         print("Dropdown de Nº Participantes aberto.")
-        # Locate the option in the listbox (assuming it appears)
-        # MUI typically uses data-value attribute for options in the listbox
         option_selector = f"li[role=\"option\"][data-value=\"{num_participantes}\"]"
         print(f"Tentando localizar opção: {option_selector}")
         page.wait_for_selector(option_selector, state="visible", timeout=10000)
         page.locator(option_selector).click()
         print(f"Nº Participantes selecionado: {num_participantes}")
-        # Short pause to allow potential state updates after selection
         time.sleep(0.5)
         # --- End Nº Participantes ---
 
@@ -101,7 +93,6 @@ def fill_form(page, data, participant_index=0):
             page.locator(necessidade_selector).check()
             print("Necessidade Especial \"Sim\" selecionado.")
 
-            # Corrected name: descrinescessidade
             qual_necessidade_selector = f"input[name=\"participante[{participant_index}].descrinescessidade\"]"
             print(f"Tentando localizar: {qual_necessidade_selector}")
             page.wait_for_selector(qual_necessidade_selector, state="visible", timeout=10000)
@@ -118,7 +109,7 @@ def fill_form(page, data, participant_index=0):
         # Campo 7: Definir Senha (Check if present before interacting)
         senha_checkbox_selector = "input[name=\"definirSenha\"]"
         print(f"Verificando presença do campo: {senha_checkbox_selector}")
-        if page.locator(senha_checkbox_selector).is_visible(timeout=2000): # Short timeout to check presence
+        if page.locator(senha_checkbox_selector).is_visible(timeout=2000):
             if data.get("definir_senha"):
                 print(f"Tentando marcar: {senha_checkbox_selector}")
                 page.locator(senha_checkbox_selector).check()
@@ -177,19 +168,19 @@ def fill_form(page, data, participant_index=0):
         time.sleep(1)
 
         print("Preenchimento da Etapa 1 e clique em Próximo concluídos. Próximas etapas não implementadas.")
-        # Corrected f-string quotes
-        screenshot_path = f"success_step1_{data['nome_responsavel'].replace(' ', '_')}.png"
-        page.screenshot(path=screenshot_path)
-        print(f"Screenshot da Etapa 1 salva em: {screenshot_path}")
+        # REMOVED: Screenshot on success
+        # screenshot_path = f"success_step1_{data["nome_responsavel"].replace(" ", "_")}.png"
+        # page.screenshot(path=screenshot_path)
+        # print(f"Screenshot da Etapa 1 salva em: {screenshot_path}")
 
     except PlaywrightTimeoutError as e:
-        # Corrected f-string quotes
-        print(f"Timeout Error durante preenchimento para {data['nome_responsavel']}: {e}")
+        print(f"Timeout Error durante preenchimento para {data["nome_responsavel"]}: {e}")
+        # REMOVED: HTML saving on timeout
         save_debug_html(page, f"{debug_prefix}_on_timeout")
         raise
     except Exception as e:
-        # Corrected f-string quotes
-        print(f"Erro inesperado durante preenchimento para {data['nome_responsavel']}: {e}")
+        print(f"Erro inesperado durante preenchimento para {data["nome_responsavel"]}: {e}")
+        # REMOVED: HTML saving on exception
         save_debug_html(page, f"{debug_prefix}_on_exception")
         raise
 
@@ -227,7 +218,7 @@ except json.JSONDecodeError:
     exit(1)
 
 print(f"Iniciando testes em: {TARGET_URL}")
-print(f"Modo Headless: {HEADELSS_MODE}")
+print(f"Modo Headless: {HEADLESS_MODE}")
 
 with sync_playwright() as p:
     #browser = p.chromium.launch(headless=HEADLESS_MODE)
@@ -237,8 +228,7 @@ with sync_playwright() as p:
 
     all_tests_passed = True
     for i, test_data in enumerate(test_data_list):
-        # Corrected f-string quotes
-        print(f"\n--- Iniciando Teste {i+1} para {test_data['nome_responsavel']} ---")
+        print(f"\n--- Iniciando Teste {i+1} para {test_data["nome_responsavel"]} ---")
         test_passed = False
         try:
             print(f"Navegando para {TARGET_URL}...")
@@ -247,24 +237,21 @@ with sync_playwright() as p:
             print("Página carregada.")
 
             fill_form(page, test_data)
-            # Corrected f-string quotes
-            print(f"Inscrição (Etapa 1) com {test_data['nome_responsavel']} processada com sucesso.")
+            print(f"Inscrição (Etapa 1) com {test_data["nome_responsavel"]} processada com sucesso.")
             test_passed = True
 
         except Exception as e:
-            # Corrected f-string quotes
-            print(f"Erro ao processar inscrição para {test_data['nome_responsavel']}: {e}")
+            print(f"Erro ao processar inscrição para {test_data["nome_responsavel"]}: {e}")
             all_tests_passed = False
-            # Corrected f-string quotes
-            screenshot_path = f"error_{test_data['nome_responsavel'].replace(' ', '_')}_{int(time.time())}.png"
-            try:
-                page.screenshot(path=screenshot_path)
-                print(f"Screenshot de erro salvo em: {screenshot_path}")
-            except Exception as screenshot_error:
-                print(f"Falha ao salvar screenshot de erro: {screenshot_error}")
+            # REMOVED: Screenshot on error
+            # screenshot_path = f"error_{test_data["nome_responsavel"].replace(" ", "_")}_{int(time.time())}.png"
+            # try:
+            #     page.screenshot(path=screenshot_path)
+            #     print(f"Screenshot de erro salvo em: {screenshot_path}")
+            # except Exception as screenshot_error:
+            #     print(f"Falha ao salvar screenshot de erro: {screenshot_error}")
         finally:
-            # Corrected f-string quotes
-            print(f"--- Teste {i+1} para {test_data['nome_responsavel']} concluído (Sucesso: {test_passed}) ---")
+            print(f"--- Teste {i+1} para {test_data["nome_responsavel"]} concluído (Sucesso: {test_passed}) ---")
 
     print(f"\nTodos os testes foram executados. Sucesso geral: {all_tests_passed}")
     browser.close()
