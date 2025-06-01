@@ -13,208 +13,253 @@ FORM_PATH = "/Inscricao"
 TARGET_URL = f"{BASE_URL}{FORM_PATH}"
 DATA_FILE = "test_data.json"
 HEADLESS_MODE = True # Set to False for local debugging with UI
+# Timeout for waiting for address fields to auto-fill
+ADDRESS_AUTOFILL_WAIT_TIMEOUT = 15 # seconds
+ADDRESS_AUTOFILL_POLL_INTERVAL = 0.5 # seconds
+# General element timeout
+ELEMENT_TIMEOUT = 10000 # ms
 # -------------------
 
-def fill_form(page, data, participant_index=0):
-    print(f"Preenchendo formulário com dados: {data["nome_responsavel"]}")
-
-    print("Preenchendo Etapa 1: Cantor")
+def fill_step1(page, data, participant_index=0):
+    print(f"Preenchendo Etapa 1: Cantor para {data["nome_responsavel"]}")
     try:
-        # --- Using corrected name attribute selectors based on diagnostic HTML ---
-
         # Campo 1: Nome Responsável
         nome_responsavel_selector = f"input[name=\"participante[{participant_index}].nomeResponsavel\"]"
-        print(f"Tentando localizar: {nome_responsavel_selector}")
-        page.wait_for_selector(nome_responsavel_selector, state="visible", timeout=20000)
+        page.wait_for_selector(nome_responsavel_selector, state="visible", timeout=ELEMENT_TIMEOUT*2)
         page.locator(nome_responsavel_selector).fill(data["nome_responsavel"])
-        print("Campo \"Nome Responsável\" preenchido.")
+        print("  Campo \"Nome Responsável\" preenchido.")
 
         # Campo 2: Email
         email_selector = f"input[name=\"participante[{participant_index}].email\"]"
-        print(f"Tentando localizar: {email_selector}")
-        page.wait_for_selector(email_selector, state="visible", timeout=10000)
+        page.wait_for_selector(email_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(email_selector).fill(data["email"])
-        print("Campo \"Email\" preenchido.")
+        print("  Campo \"Email\" preenchido.")
 
-        # Campo 3: Documento RG (Corrected name based on HTML: documentorg)
+        # Campo 3: Documento RG
         rg_selector = f"input[name=\"participante[{participant_index}].documentorg\"]"
-        print(f"Tentando localizar: {rg_selector}")
-        page.wait_for_selector(rg_selector, state="visible", timeout=10000)
+        page.wait_for_selector(rg_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(rg_selector).fill(data["rg"])
-        print("Campo \"Documento RG\" preenchido.")
+        print("  Campo \"Documento RG\" preenchido.")
 
-        # Campo 4: Data Nascimento (Corrected name based on HTML: nascimento)
+        # Campo 4: Data Nascimento
         data_nascimento_selector = f"input[name=\"participante[{participant_index}].nascimento\"]"
-        print(f"Tentando localizar: {data_nascimento_selector}")
-        page.wait_for_selector(data_nascimento_selector, state="visible", timeout=10000)
-        # Convert date from JSON (assuming DDMMYYYY) to YYYY-MM-DD for input type=date
+        page.wait_for_selector(data_nascimento_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         try:
             date_obj = datetime.strptime(data["data_nascimento"], "%d%m%Y")
             date_iso = date_obj.strftime("%Y-%m-%d")
             page.locator(data_nascimento_selector).fill(date_iso)
-            print(f"Campo \"Data de Nascimento\" preenchido com {date_iso}.")
+            print(f"  Campo \"Data de Nascimento\" preenchido com {date_iso}.")
         except ValueError as date_err:
-            print(f"ERRO: Falha ao converter data {data["data_nascimento"]} para YYYY-MM-DD. Erro: {date_err}")
+            print(f"  ERRO: Falha ao converter data {data["data_nascimento"]} para YYYY-MM-DD. Erro: {date_err}")
             raise date_err
         except Exception as date_err:
-            print(f"ERRO inesperado ao processar data: {date_err}")
+            print(f"  ERRO inesperado ao processar data: {date_err}")
             raise date_err
 
-        # Campo 5: Gênero (Corrected name based on HTML: genero, values are lowercase)
+        # Campo 5: Gênero
         genero_value = data["genero"].lower()
         genero_selector = f"input[name=\"participante[{participant_index}].genero\"][value=\"{genero_value}\"]"
-        print(f"Tentando localizar: {genero_selector}")
-        page.wait_for_selector(genero_selector, timeout=10000)
+        page.wait_for_selector(genero_selector, timeout=ELEMENT_TIMEOUT)
         page.locator(genero_selector).check()
-        print(f"Gênero \"{data["genero"]}\" selecionado.")
+        print(f"  Gênero \"{data["genero"]}\" selecionado.")
 
-        # --- Campo: Nº Participantes (MUI Select) ---
-        num_participantes = data.get("num_participantes", 1) # Default to 1 if not provided
+        # Campo: Nº Participantes
+        num_participantes = data.get("num_participantes", 0)
         select_trigger_selector = f"#individuos-{participant_index}"
-        print(f"Tentando localizar seletor de Nº Participantes: {select_trigger_selector}")
-        page.wait_for_selector(select_trigger_selector, state="visible", timeout=10000)
+        page.wait_for_selector(select_trigger_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(select_trigger_selector).click()
-        print("Dropdown de Nº Participantes aberto.")
         option_selector = f"li[role=\"option\"][data-value=\"{num_participantes}\"]"
-        print(f"Tentando localizar opção: {option_selector}")
-        page.wait_for_selector(option_selector, state="visible", timeout=10000)
+        page.wait_for_selector(option_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(option_selector).click()
-        print(f"Nº Participantes selecionado: {num_participantes}")
+        print(f"  Nº Participantes selecionado: {num_participantes}")
         time.sleep(0.5)
-        # --- End Nº Participantes ---
 
-        # Campo 6: Necessidade Especial (Corrected name: necessidade, values: necessidadesim/necessidadenao)
+        # Campo 6: Necessidade Especial
         necessidade_selector_base = f"input[name=\"participante[{participant_index}].necessidade\"]"
         if data["necessidade_especial"]:
             necessidade_value = "necessidadesim"
             necessidade_selector = f"{necessidade_selector_base}[value=\"{necessidade_value}\"]"
-            print(f"Tentando localizar: {necessidade_selector}")
-            page.wait_for_selector(necessidade_selector, timeout=10000)
+            page.wait_for_selector(necessidade_selector, timeout=ELEMENT_TIMEOUT)
             page.locator(necessidade_selector).check()
-            print("Necessidade Especial \"Sim\" selecionado.")
+            print("  Necessidade Especial \"Sim\" selecionado.")
 
             qual_necessidade_selector = f"input[name=\"participante[{participant_index}].descrinescessidade\"]"
-            print(f"Tentando localizar: {qual_necessidade_selector}")
-            page.wait_for_selector(qual_necessidade_selector, state="visible", timeout=10000)
+            page.wait_for_selector(qual_necessidade_selector, state="visible", timeout=ELEMENT_TIMEOUT)
             page.locator(qual_necessidade_selector).fill(data["qual_necessidade"])
-            print("Campo \"Qual Necessidade\" preenchido.")
+            print("  Campo \"Qual Necessidade\" preenchido.")
         else:
             necessidade_value = "necessidadenao"
             necessidade_selector = f"{necessidade_selector_base}[value=\"{necessidade_value}\"]"
-            print(f"Tentando localizar: {necessidade_selector}")
-            page.wait_for_selector(necessidade_selector, timeout=10000)
+            page.wait_for_selector(necessidade_selector, timeout=ELEMENT_TIMEOUT)
             page.locator(necessidade_selector).check()
-            print("Necessidade Especial \"Não\" selecionado.")
+            print("  Necessidade Especial \"Não\" selecionado.")
 
-        # Campo 7: Definir Senha (Check if present before interacting)
+        # Campo 7: Definir Senha
         senha_checkbox_selector = "input[name=\"definirSenha\"]"
-        print(f"Verificando presença do campo: {senha_checkbox_selector}")
         if page.locator(senha_checkbox_selector).is_visible(timeout=2000):
             if data.get("definir_senha"):
-                print(f"Tentando marcar: {senha_checkbox_selector}")
                 page.locator(senha_checkbox_selector).check()
-                print("Checkbox \"Definir Senha\" marcado.")
+                print("  Checkbox \"Definir Senha\" marcado.")
             else:
-                print("Checkbox \"Definir Senha\" presente, mas não marcado conforme dados.")
+                print("  Checkbox \"Definir Senha\" presente, mas não marcado.")
         else:
-            print("Checkbox \"Definir Senha\" não encontrado/visível.")
+            print("  Checkbox \"Definir Senha\" não encontrado/visível.")
 
-        # Campo 8: CPF (Corrected name based on HTML: cpf)
+        # Campo 8: CPF
         cpf_selector = f"input[name=\"participante[{participant_index}].cpf\"]"
-        print(f"Tentando localizar: {cpf_selector}")
-        page.wait_for_selector(cpf_selector, state="visible", timeout=10000)
+        page.wait_for_selector(cpf_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(cpf_selector).click()
         page.locator(cpf_selector).type(data["cpf"], delay=150)
-        print("Campo \"CPF\" preenchido.")
+        print("  Campo \"CPF\" preenchido.")
 
-        # Campo 9: Pix (Corrected name based on HTML: pix)
+        # Campo 9: Pix
         pix_selector = f"input[name=\"participante[{participant_index}].pix\"]"
-        print(f"Tentando localizar: {pix_selector}")
-        page.wait_for_selector(pix_selector, state="visible", timeout=10000)
+        page.wait_for_selector(pix_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(pix_selector).fill(data["pix"])
-        print("Campo \"Pix\" preenchido.")
+        print("  Campo \"Pix\" preenchido.")
 
-        # Campo 10: Banco (Corrected name based on HTML: banco)
+        # Campo 10: Banco
         banco_selector = f"input[name=\"participante[{participant_index}].banco\"]"
-        print(f"Tentando localizar: {banco_selector}")
-        page.wait_for_selector(banco_selector, state="visible", timeout=10000)
+        page.wait_for_selector(banco_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(banco_selector).fill(data["codigo_banco"])
-        print("Campo \"Código do Banco\" preenchido.")
+        print("  Campo \"Código do Banco\" preenchido.")
 
-        # Campo 11: Agencia (Corrected name based on HTML: agencia)
+        # Campo 11: Agencia
         agencia_selector = f"input[name=\"participante[{participant_index}].agencia\"]"
-        print(f"Tentando localizar: {agencia_selector}")
-        page.wait_for_selector(agencia_selector, state="visible", timeout=10000)
+        page.wait_for_selector(agencia_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(agencia_selector).fill(data["agencia"])
-        print("Campo \"Agência\" preenchido.")
+        print("  Campo \"Agência\" preenchido.")
 
-        # Campo 12: Conta (Corrected name based on HTML: conta)
+        # Campo 12: Conta
         conta_selector = f"input[name=\"participante[{participant_index}].conta\"]"
-        print(f"Tentando localizar: {conta_selector}")
-        page.wait_for_selector(conta_selector, state="visible", timeout=10000)
+        page.wait_for_selector(conta_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(conta_selector).fill(data["conta"])
-        print("Campo \"Conta\" preenchido.")
+        print("  Campo \"Conta\" preenchido.")
 
-        # Botão Próximo
+        # Botão Próximo (Etapa 1)
         print("Clicando em Próximo após Etapa 1")
         proximo_button_selector = "button:has-text(\"Próximo\")"
-        page.wait_for_selector(proximo_button_selector, timeout=10000)
+        page.wait_for_selector(proximo_button_selector, timeout=ELEMENT_TIMEOUT)
         page.locator(proximo_button_selector).click()
-        print("Botão \"Próximo\" clicado.")
+        print("Botão \"Próximo\" (Etapa 1) clicado.")
 
         # Wait for navigation to Etapa 2: Endereço
         page.wait_for_selector("text=Endereço", timeout=15000)
         print("Navegou para a Etapa 2: Endereço.")
-        time.sleep(1)
+        time.sleep(1) # Wait a bit for elements to render
 
-        print("Preenchimento da Etapa 1 e clique em Próximo concluídos. Próximas etapas não implementadas.")
-        # REMOVED: Screenshot on success
-        # screenshot_path = f"success_step1_{data["nome_responsavel"].replace(" ", "_")}.png"
-        # page.screenshot(path=screenshot_path)
-        # print(f"Screenshot da Etapa 1 salva em: {screenshot_path}")
+        print("Preenchimento da Etapa 1 concluído.")
+        return True
 
     except PlaywrightTimeoutError as e:
-        print(f"Timeout Error durante preenchimento para {data["nome_responsavel"]}: {e}")
-        # REMOVED: HTML saving on timeout
-        save_debug_html(page, f"{debug_prefix}_on_timeout")
-        raise
+        print(f"Timeout Error durante preenchimento da Etapa 1 para {data["nome_responsavel"]}: {e}")
+        return False
     except Exception as e:
-        print(f"Erro inesperado durante preenchimento para {data["nome_responsavel"]}: {e}")
-        # REMOVED: HTML saving on exception
-        save_debug_html(page, f"{debug_prefix}_on_exception")
-        raise
+        print(f"Erro inesperado durante preenchimento da Etapa 1 para {data["nome_responsavel"]}: {e}")
+        return False
 
-# Function to save debug HTML
-def save_debug_html(page, filename_prefix):
+def wait_for_autofill_or_fill_manually(page, selector, value, field_name):
+    """Waits for a field to be auto-filled or fills it manually after a timeout."""
+    start_time = time.time()
+    field_locator = page.locator(selector)
+    
+    print(f"  Aguardando auto-preenchimento ou visibilidade de: {field_name}")
+    page.wait_for_selector(selector, state="visible", timeout=ELEMENT_TIMEOUT)
+    
+    while time.time() - start_time < ADDRESS_AUTOFILL_WAIT_TIMEOUT:
+        current_value = field_locator.input_value()
+        if current_value:
+            print(f"  Campo \"{field_name}\" preenchido (auto-fill: ", current_value, ").")
+            return True # Auto-filled
+        time.sleep(ADDRESS_AUTOFILL_POLL_INTERVAL)
+
+    # Timeout reached, try filling manually
+    print(f"  Timeout esperando auto-preenchimento para {field_name}. Preenchendo manualmente.")
     try:
-        print(f"--- Salvando HTML para depuração ({filename_prefix}) ---")
-        form_locator = page.locator("form").first
-        form_html = form_locator.inner_html(timeout=5000)
-        filepath = f"{filename_prefix}.html"
-        with open(filepath, "w", encoding="utf-8") as f_html:
-            f_html.write(form_html)
-        print(f"HTML do formulário salvo em: {filepath}")
-    except Exception as html_error:
-        print(f"Não foi possível obter/salvar o HTML do formulário: {html_error}")
-        try:
-            body_html = page.locator("body").inner_html(timeout=5000)
-            filepath = f"{filename_prefix}_body.html"
-            with open(filepath, "w", encoding="utf-8") as f_html:
-                f_html.write(body_html)
-            print(f"HTML do body salvo em: {filepath}")
-        except Exception as body_html_error:
-            print(f"Não foi possível obter/salvar o HTML do body: {body_html_error}")
-    print("--- Fim da depuração de HTML ---")
+        field_locator.fill(value)
+        print(f"  Campo \"{field_name}\" preenchido (manualmente).")
+        return True
+    except Exception as fill_err:
+        print(f"  ERRO ao tentar preencher manualmente {field_name}: {fill_err}")
+        return False
+
+def fill_step2(page, data):
+    print(f"Preenchendo Etapa 2: Endereço para {data["nome_responsavel"]}")
+    try:
+        # Campo 1: endereco
+        endereco_selector = "input[name=\"endereco\"]"
+        page.wait_for_selector(endereco_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(endereco_selector).fill(data["endereco"])
+        print("  Campo \"Endereco\" preenchido.")
+        # Campo 2: telefone
+        telefone_selector = "input[name=\"telefone\"]"
+        page.wait_for_selector(telefone_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(telefone_selector).fill(data["telefone"])
+        print("  Campo \"Telefone\" preenchido.")        
+        # Campo 3: CEP
+        cep_selector = "input[name=\"cep\"]"
+        page.wait_for_selector(cep_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(cep_selector).click()
+        page.locator(cep_selector).type(data["cep"], delay=100)
+        print("  Campo \"CEP\" preenchido.")
+        # Campo 3: cidade
+        cidade_selector = "input[name=\"cidade\"]"
+        page.wait_for_selector(cidade_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(cidade_selector).fill(data["cidade"])
+        print("  Campo \"Cidade\" preenchido.")
+
+        # Give some time for potential API call
+        time.sleep(1)
+        page.keyboard.press("Tab")
+        print("  Pressionado Tab após cidade.")
+        time.sleep(1) # Allow focus change and potential API call trigger
+
+        # Campo 6: Estado (UF) - MUI Select
+        estado_value = data["estado"]
+        estado_trigger_selector = "#estado" # Using ID based on mapping
+        page.wait_for_selector(estado_trigger_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        # We will always select the state manually for consistency, 
+        # as checking MUI Select auto-fill is complex.
+        print("  Selecionando Estado manualmente...")
+        page.locator(estado_trigger_selector).click()
+        print("  Dropdown de Estado aberto.")
+        estado_option_selector = f"li[role=\"option\"][data-value=\"{estado_value}\"]"
+        page.wait_for_selector(estado_option_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(estado_option_selector).click()
+        print(f"  Estado \"{estado_value}\" selecionado.")
+        time.sleep(0.5)
+
+        # Botão Próximo (Etapa 2)
+        print("Clicando em Próximo após Etapa 2")
+        proximo_button_selector = "button:has-text(\"Próximo\")"
+        page.wait_for_selector(proximo_button_selector, timeout=ELEMENT_TIMEOUT)
+        page.locator(proximo_button_selector).click()
+        print("Botão \"Próximo\" (Etapa 2) clicado.")        
+
+        # Wait for navigation to Etapa 3: Música
+        page.wait_for_selector("text=Música", timeout=15000)
+        print("Navegou para a Etapa 3: Música.")
+        time.sleep(1)
+
+        print("Preenchimento da Etapa 2 concluído.")
+        return True
+
+    except PlaywrightTimeoutError as e:
+        print(f"Timeout Error durante preenchimento da Etapa 2 para {data["nome_responsavel"]}: {e}")
+        return False
+    except Exception as e:
+        print(f"Erro inesperado durante preenchimento da Etapa 2 para {data["nome_responsavel"]}: {e}")
+        return False
 
 # Load test data
 try:
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         test_data_list = json.load(f)
 except FileNotFoundError:
-    print(f"Erro: Arquivo de dados ", DATA_FILE, " não encontrado.")
+    print(f"Erro: Arquivo de dados {DATA_FILE} não encontrado.")
     exit(1)
 except json.JSONDecodeError:
-    print(f"Erro: Falha ao decodificar JSON do arquivo ", DATA_FILE, ". Verifique o formato.")
+    print(f"Erro: Falha ao decodificar JSON do arquivo {DATA_FILE}. Verifique o formato.")
     exit(1)
 
 print(f"Iniciando testes em: {TARGET_URL}")
@@ -229,28 +274,34 @@ with sync_playwright() as p:
     all_tests_passed = True
     for i, test_data in enumerate(test_data_list):
         print(f"\n--- Iniciando Teste {i+1} para {test_data["nome_responsavel"]} ---")
-        test_passed = False
+        step1_success = False
+        step2_success = False
         try:
             print(f"Navegando para {TARGET_URL}...")
             page.goto(TARGET_URL, timeout=60000)
             page.wait_for_load_state("domcontentloaded", timeout=30000)
             print("Página carregada.")
 
-            fill_form(page, test_data)
-            print(f"Inscrição (Etapa 1) com {test_data["nome_responsavel"]} processada com sucesso.")
-            test_passed = True
+            # Execute Step 1
+            step1_success = fill_step1(page, test_data)
+
+            # Execute Step 2 only if Step 1 succeeded
+            if step1_success:
+                step2_success = fill_step2(page, test_data)
+            else:
+                print("Etapa 1 falhou, pulando Etapa 2.")
+
+            if step1_success and step2_success:
+                print(f"Inscrição (Etapas 1 e 2) com {test_data["nome_responsavel"]} processada com sucesso.")
+            else:
+                 print(f"Falha no processamento da inscrição para {test_data["nome_responsavel"]}.")
+                 all_tests_passed = False
 
         except Exception as e:
-            print(f"Erro ao processar inscrição para {test_data["nome_responsavel"]}: {e}")
+            print(f"Erro geral ao processar inscrição para {test_data["nome_responsavel"]}: {e}")
             all_tests_passed = False
-            # REMOVED: Screenshot on error
-            # screenshot_path = f"error_{test_data["nome_responsavel"].replace(" ", "_")}_{int(time.time())}.png"
-            # try:
-            #     page.screenshot(path=screenshot_path)
-            #     print(f"Screenshot de erro salvo em: {screenshot_path}")
-            # except Exception as screenshot_error:
-            #     print(f"Falha ao salvar screenshot de erro: {screenshot_error}")
         finally:
+            test_passed = step1_success and step2_success
             print(f"--- Teste {i+1} para {test_data["nome_responsavel"]} concluído (Sucesso: {test_passed}) ---")
 
     print(f"\nTodos os testes foram executados. Sucesso geral: {all_tests_passed}")
