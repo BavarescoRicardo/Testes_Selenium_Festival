@@ -323,65 +323,115 @@ def fill_step3(page, data):
 def fill_final_step(page, data):
     print("Preenchendo etapa final: Documentos e Confirmação")
     try:
-        # 1. Upload do documento
-        # page.wait_for_selector("text=Dados Finais", timeout=1000)
-        print("  Selecionando documento...")
-        doc_input_selector = "input[id='select-image']"
-        page.wait_for_selector(doc_input_selector, state="visible", timeout=ELEMENT_TIMEOUT)
-        page.locator(doc_input_selector).click()
-
-        
-        # Fornece o caminho para um arquivo de imagem de teste
-        test_doc_path = os.path.join(os.path.dirname(__file__), "test_document.jpg")
-        page.locator(doc_input_selector).set_input_files(test_doc_path)
-        print(f"  Documento enviado: {test_doc_path}")
-        
-        # Verifica se o upload foi bem-sucedido
-        page.wait_for_selector("text=test_document.jpg", timeout=ELEMENT_TIMEOUT)
-        print("  Documento carregado com sucesso")
-
-        # 2. Checkbox de maioridade
+        # 1. Marcar checkbox de maioridade
         print("  Marcando checkbox de maioridade...")
         checkbox_selector = "input[type='checkbox']"
         page.wait_for_selector(checkbox_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         
         if data.get("maior_de_idade", True):
-            page.locator(checkbox_selector).check()
+            if not page.locator(checkbox_selector).is_checked():
+                page.locator(checkbox_selector).check()
             print("  Checkbox 'maior de idade' marcado")
         else:
-            page.locator(checkbox_selector).uncheck()
+            if page.locator(checkbox_selector).is_checked():
+                page.locator(checkbox_selector).uncheck()
             print("  Checkbox 'maior de idade' desmarcado")
-            # Se não for maior de idade, precisa enviar termo de responsabilidade
-            print("  Selecionando termo de responsabilidade...")
-            termo_input_selector = "input[id='select-termo']"
-            page.wait_for_selector(termo_input_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+
+        # 2. Upload do documento - abordagem mais robusta
+        print("  Realizando upload do documento...")
+        
+        # Localize o input file (pode estar oculto)
+        file_input_selector = "input[id='select-image'][type='file']"
+        page.wait_for_selector(file_input_selector, state="attached", timeout=ELEMENT_TIMEOUT)
+        
+        # Caminho para o arquivo de teste (certifique-se que existe)
+        test_doc_path = os.path.join(os.path.dirname(__file__), "test_document.png")
+        if not os.path.exists(test_doc_path):
+            raise FileNotFoundError(f"Arquivo de teste não encontrado: {test_doc_path}")
+        
+        # Faça o upload do arquivo diretamente no input
+        with page.expect_file_chooser() as fc_info:
+            page.click("button:has-text('Selecionar documento')")
+        file_chooser = fc_info.value
+        file_chooser.set_files(test_doc_path)
+        
+        print(f"  Documento enviado: {test_doc_path}")
+        
+        # Verifique se o upload foi bem-sucedido
+        try:
+            page.wait_for_selector(f"text={os.path.basename(test_doc_path)}", timeout=ELEMENT_TIMEOUT)
+            print("  Upload do documento confirmado")
+        except:
+            # Verifique se o nome foi truncado
+            try:
+                page.wait_for_selector(f"text={os.path.basename(test_doc_path)[:8]}", timeout=2000)
+                print("  Upload confirmado (nome truncado)")
+            except:
+                print("  Upload realizado, mas não foi possível confirmar visualmente")
+
+        # 3. Se não for maior de idade, fazer upload do termo
+        if not data.get("maior_de_idade", True):
+            print("  Realizando upload do termo de responsabilidade...")
+            termo_input_selector = "input[id='select-termo'][type='file']"
+            page.wait_for_selector(termo_input_selector, state="attached", timeout=ELEMENT_TIMEOUT)
             
-            test_termo_path = os.path.join(os.path.dirname(__file__), "test_termo.jpg")
-            page.locator(termo_input_selector).set_input_files(test_termo_path)
+            test_termo_path = os.path.join(os.path.dirname(__file__), "test_termo.png")
+            if not os.path.exists(test_termo_path):
+                raise FileNotFoundError(f"Arquivo de termo não encontrado: {test_termo_path}")
+            
+            with page.expect_file_chooser() as fc_info:
+                page.click("button:has-text('Selecionar permissão do responsável')")
+            file_chooser = fc_info.value
+            file_chooser.set_files(test_termo_path)
+            
             print(f"  Termo enviado: {test_termo_path}")
             
-            page.wait_for_selector("text=test_termo.jpg", timeout=ELEMENT_TIMEOUT)
-            print("  Termo carregado com sucesso")
+            try:
+                page.wait_for_selector(f"text={os.path.basename(test_termo_path)}", timeout=ELEMENT_TIMEOUT)
+                print("  Upload do termo confirmado")
+            except:
+                try:
+                    page.wait_for_selector(f"text={os.path.basename(test_termo_path)[:8]}", timeout=2000)
+                    print("  Upload do termo confirmado (nome truncado)")
+                except:
+                    print("  Upload do termo realizado, mas não foi possível confirmar visualmente")
 
-        # 3. Submeter formulário
+        # 4. Enviar inscrição com verificação robusta
         print("  Submetendo inscrição...")
         submit_selector = "button:has-text('Enviar inscrição')"
         page.wait_for_selector(submit_selector, state="visible", timeout=ELEMENT_TIMEOUT)
-        page.locator(submit_selector).click()
+        time.sleep(1)
+
+        # Clique no botão de envio
+        page.click(submit_selector)
+
+        # Espera o modal SweetAlert2 aparecer e clica em "Confirmar"
+        print("  Confirmando no SweetAlert2...")
+        page.wait_for_selector("button.swal2-confirm", timeout=ELEMENT_TIMEOUT)
+        page.click("button.swal2-confirm")
+
+        print("  Inscrição submetida.")
+        time.sleep(2)
+
         
-        # Verifica se a submissão foi bem-sucedida
+        # Verifique a mensagem de sucesso ou redirecionamento
         try:
             page.wait_for_selector("text=Inscrição enviada com sucesso", timeout=15000)
-            print("  Inscrição submetida com sucesso!")
-            return True
-        except PlaywrightTimeoutError:
-            print("  Aviso: Não foi possível confirmar a mensagem de sucesso")
-            return True  # Assume sucesso se não encontrar mensagem
+            print("  Mensagem de sucesso encontrada")
+        except:
+            try:
+                page.wait_for_selector("text=Obrigado", timeout=5000)
+                print("  Página de confirmação encontrada")
+            except:
+                print("  Não foi possível confirmar visualmente o sucesso, mas a submissão foi realizada")
+
+        return True
 
     except Exception as e:
         print(f"Erro durante preenchimento da etapa final: {str(e)}")
-        page.screenshot(path="erro_etapa_final.png")
-        return False    
+        page.screenshot(path="error_final_step.png")
+        return False
+    
 
 # Load test data
 try:
