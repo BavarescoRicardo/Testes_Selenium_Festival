@@ -279,16 +279,19 @@ def fill_step3(page, data):
         print("  Pressionado Tab após autor.")
         time.sleep(1)
 
-        # Campo 6: Categoria  - MUI Select
+        # Campo 6: categoria
         categoria_value = data["categoria"]
-        categoria_trigger_selector = "#categoria"
-        page.wait_for_selector(categoria_trigger_selector, state="visible", timeout=ELEMENT_TIMEOUT)
-        print("  Selecionando categoria manualmente...")
-        page.locator(categoria_trigger_selector).click()
-        print("  Dropdown de categoria aberto.")
-        categoria_option_selector = f"li[role=\"option\"][data-value=\"{categoria_value}\"]"
-        page.wait_for_selector(categoria_option_selector, state="visible", timeout=ELEMENT_TIMEOUT)
-        page.locator(categoria_option_selector).click()
+        categoria_input_selector = "#categoria"
+        page.wait_for_selector(categoria_input_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        print("  Selecionando Categoria...")
+
+        # Digita no campo de categoria
+        # page.locator(categoria_input_selector).fill(categoria_value)        
+
+        # Pressiona seta para baixo e enter para selecionar a sugestão
+        page.keyboard.press("ArrowDown")
+        page.keyboard.press("ArrowDown")
+        page.keyboard.press("Enter")
         print(f"  Categoria \"{categoria_value}\" selecionada.")
         time.sleep(0.5)
 
@@ -296,7 +299,8 @@ def fill_step3(page, data):
         tom_selector = "input[name=\"tom\"]"
         page.wait_for_selector(tom_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(tom_selector).fill(data["tom"])
-        print("  Campo \"Tom\" preenchido.")                
+        print("  Campo \"Tom\" preenchido.")
+        time.sleep(1)
 
         # Botão Próximo (Etapa 3)
         print("Clicando em Próximo após Etapa 3")
