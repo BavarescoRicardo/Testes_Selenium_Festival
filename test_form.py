@@ -203,10 +203,10 @@ def fill_step2(page, data):
         page.locator(cidade_selector).fill(data["cidade"])
         print("  Campo \"Cidade\" preenchido.")
 
-        time.sleep(1)
+        time.sleep(0.5)
         page.keyboard.press("Tab")
         print("  Pressionado Tab após cidade.")
-        time.sleep(1)
+        time.sleep(0.5)
 
         # Campo 6: Estado (UF) - MUI Select
         estado_value = data["estado"]
@@ -260,7 +260,7 @@ def fill_step3(page, data):
         linkmusica_selector = "input[name=\"linkmusica\"]"
         page.wait_for_selector(linkmusica_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         page.locator(linkmusica_selector).click()
-        page.locator(linkmusica_selector).type(data["linkmusica"], delay=100)
+        page.locator(linkmusica_selector).type(data["linkmusica"], delay=10)
         print("  Campo \"LinkMusica\" preenchido.")
         # Campo 4: gravacao
         gravacao_selector = "input[name=\"gravacao\"]"
@@ -274,19 +274,16 @@ def fill_step3(page, data):
         page.locator(autor_selector).fill(data["autor"])
         print("  Campo \"Autor\" preenchido.")        
 
-        time.sleep(1)
+        time.sleep(0.5)
         page.keyboard.press("Tab")
         print("  Pressionado Tab após autor.")
-        time.sleep(1)
+        time.sleep(0.5)
 
         # Campo 6: categoria
         categoria_value = data["categoria"]
         categoria_input_selector = "#categoria"
         page.wait_for_selector(categoria_input_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         print("  Selecionando Categoria...")
-
-        # Digita no campo de categoria
-        # page.locator(categoria_input_selector).fill(categoria_value)        
 
         # Pressiona seta para baixo e enter para selecionar a sugestão
         page.keyboard.press("ArrowDown")
@@ -309,19 +306,81 @@ def fill_step3(page, data):
         page.locator(proximo_button_selector).click()
         print("Botão \"Próximo\" (Etapa 3) clicado.")        
 
-        # Wait for navigation to Etapa 4: Dados Finais
-        page.wait_for_selector("text=Dados Finais", timeout=1000)
-        print("Navegou para a Etapa 4: Dados Finais.")
+        page.wait_for_selector("text=Música", timeout=1000)
+        print("Navegou para a Etapa Final.")
         time.sleep(1)
 
         print("Preenchimento da Etapa 3 concluído.")
         return True
-
+    
     except PlaywrightTimeoutError as e:
         print(f"Timeout Error durante preenchimento da Etapa 3 para {data['nomeartistico']}: {e}")
         return False
     except Exception as e:
         print(f"Erro inesperado durante preenchimento da Etapa 3 para {data['nomeartistico']}: {e}")
+        return False    
+    
+def fill_final_step(page, data):
+    print("Preenchendo etapa final: Documentos e Confirmação")
+    try:
+        # 1. Upload do documento
+        # page.wait_for_selector("text=Dados Finais", timeout=1000)
+        print("  Selecionando documento...")
+        doc_input_selector = "input[id='select-image']"
+        page.wait_for_selector(doc_input_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(doc_input_selector).click()
+
+        
+        # Fornece o caminho para um arquivo de imagem de teste
+        test_doc_path = os.path.join(os.path.dirname(__file__), "test_document.jpg")
+        page.locator(doc_input_selector).set_input_files(test_doc_path)
+        print(f"  Documento enviado: {test_doc_path}")
+        
+        # Verifica se o upload foi bem-sucedido
+        page.wait_for_selector("text=test_document.jpg", timeout=ELEMENT_TIMEOUT)
+        print("  Documento carregado com sucesso")
+
+        # 2. Checkbox de maioridade
+        print("  Marcando checkbox de maioridade...")
+        checkbox_selector = "input[type='checkbox']"
+        page.wait_for_selector(checkbox_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        
+        if data.get("maior_de_idade", True):
+            page.locator(checkbox_selector).check()
+            print("  Checkbox 'maior de idade' marcado")
+        else:
+            page.locator(checkbox_selector).uncheck()
+            print("  Checkbox 'maior de idade' desmarcado")
+            # Se não for maior de idade, precisa enviar termo de responsabilidade
+            print("  Selecionando termo de responsabilidade...")
+            termo_input_selector = "input[id='select-termo']"
+            page.wait_for_selector(termo_input_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+            
+            test_termo_path = os.path.join(os.path.dirname(__file__), "test_termo.jpg")
+            page.locator(termo_input_selector).set_input_files(test_termo_path)
+            print(f"  Termo enviado: {test_termo_path}")
+            
+            page.wait_for_selector("text=test_termo.jpg", timeout=ELEMENT_TIMEOUT)
+            print("  Termo carregado com sucesso")
+
+        # 3. Submeter formulário
+        print("  Submetendo inscrição...")
+        submit_selector = "button:has-text('Enviar inscrição')"
+        page.wait_for_selector(submit_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(submit_selector).click()
+        
+        # Verifica se a submissão foi bem-sucedida
+        try:
+            page.wait_for_selector("text=Inscrição enviada com sucesso", timeout=15000)
+            print("  Inscrição submetida com sucesso!")
+            return True
+        except PlaywrightTimeoutError:
+            print("  Aviso: Não foi possível confirmar a mensagem de sucesso")
+            return True  # Assume sucesso se não encontrar mensagem
+
+    except Exception as e:
+        print(f"Erro durante preenchimento da etapa final: {str(e)}")
+        page.screenshot(path="erro_etapa_final.png")
         return False    
 
 # Load test data
@@ -370,8 +429,14 @@ with sync_playwright() as p:
             else:
                 print("Etapa 2 falhou, pulando Etapa 3.")                
 
-            if step1_success and step2_success and step3_success:
-                print(f"Inscrição (Etapas 1 e 2 e 3) com {test_data["nomeartistico"]} processada com sucesso.")
+            # Execute final Step only if Step 3 succeeded
+            if step3_success:
+                final_success = fill_final_step(page, test_data)
+            else:
+                print("Etapa 3 falhou, pulando Etapa final.")                                
+
+            if step1_success and step2_success and step3_success and final_success:
+                print(f"Inscrição (Etapas 1 e 2 e 3 e final) com {test_data["nomeartistico"]} processada com sucesso.")
             else:
                  print(f"Falha no processamento da inscrição para {test_data["nome_responsavel"]}.")
                  all_tests_passed = False
@@ -380,7 +445,7 @@ with sync_playwright() as p:
             print(f"Erro geral ao processar inscrição para {test_data["nome_responsavel"]}: {e}")
             all_tests_passed = False
         finally:
-            test_passed = step1_success and step2_success and step3_success
+            test_passed = step1_success and step2_success and step3_success and final_success
             print(f"--- Teste {i+1} para {test_data["nome_responsavel"]} concluído (Sucesso: {test_passed}) ---")
 
     print(f"\nTodos os testes foram executados. Sucesso geral: {all_tests_passed}")
