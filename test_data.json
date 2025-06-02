@@ -19,7 +19,14 @@
     "cep": "01001000",
     "bairro": "Sé",
     "cidade": "São Paulo",
-    "estado": "SP"
+    "estado": "SP",
+    "nomeartistico": "João Carreiro",
+    "musica": "Borboletas",
+    "linkmusica": "https://youtube.com/borboletas-joao-carreiro",
+    "gravacao": "João Carreiro",
+    "autor": "João Carreiro",
+    "categoria": "0",
+    "tom": "F"
   },
   {
     "nome_responsavel": "Maria Oliveira Teste",
@@ -41,7 +48,14 @@
     "cep": "20031912",
     "bairro": "Centro",
     "cidade": "Irani",
-    "estado": "SC"
+    "estado": "SC",
+    "nomeartistico": "Maria Flor",
+    "musica": "Caminhos",
+    "linkmusica": "https://youtube.com/caminhos-maria-flor",
+    "gravacao": "Maria Flor",
+    "autor": "Maria Flor",
+    "categoria": "0",
+    "tom": "G"
   },
   {
     "nome_responsavel": "Carlos Pereira Teste",
@@ -63,7 +77,13 @@
     "cep": "70150900",
     "bairro": "Zona Cívico-Administrativa",
     "cidade": "Brasília",
-    "estado": "DF"
+    "estado": "DF",
+    "nomeartistico": "Carlos Vento",
+    "musica": "Horizontes",
+    "linkmusica": "https://youtube.com/horizontes-carlos-vento",
+    "gravacao": "Carlos Vento",
+    "autor": "Carlos Vento",
+    "categoria": "0",
+    "tom": "D"
   }
 ]
-

@@ -6,18 +6,15 @@ import os
 from datetime import datetime
 
 # --- Configuration ---
-# Default to Vercel URL, user can change this locally by setting TEST_URL environment variable
 #BASE_URL = os.environ.get("TEST_URL", "https://site-festival.vercel.app")
 BASE_URL = "http://localhost:3000"
 FORM_PATH = "/Inscricao"
 TARGET_URL = f"{BASE_URL}{FORM_PATH}"
 DATA_FILE = "test_data.json"
-HEADLESS_MODE = True # Set to False for local debugging with UI
-# Timeout for waiting for address fields to auto-fill
-ADDRESS_AUTOFILL_WAIT_TIMEOUT = 15 # seconds
-ADDRESS_AUTOFILL_POLL_INTERVAL = 0.5 # seconds
-# General element timeout
-ELEMENT_TIMEOUT = 10000 # ms
+HEADLESS_MODE = True
+ADDRESS_AUTOFILL_WAIT_TIMEOUT = 15
+ADDRESS_AUTOFILL_POLL_INTERVAL = 0.5
+ELEMENT_TIMEOUT = 10000
 # -------------------
 
 def fill_step1(page, data, participant_index=0):
@@ -146,7 +143,7 @@ def fill_step1(page, data, participant_index=0):
         # Wait for navigation to Etapa 2: Endereço
         page.wait_for_selector("text=Endereço", timeout=15000)
         print("Navegou para a Etapa 2: Endereço.")
-        time.sleep(1) # Wait a bit for elements to render
+        time.sleep(1)
 
         print("Preenchimento da Etapa 1 concluído.")
         return True
@@ -159,7 +156,6 @@ def fill_step1(page, data, participant_index=0):
         return False
 
 def wait_for_autofill_or_fill_manually(page, selector, value, field_name):
-    """Waits for a field to be auto-filled or fills it manually after a timeout."""
     start_time = time.time()
     field_locator = page.locator(selector)
     
@@ -173,7 +169,6 @@ def wait_for_autofill_or_fill_manually(page, selector, value, field_name):
             return True # Auto-filled
         time.sleep(ADDRESS_AUTOFILL_POLL_INTERVAL)
 
-    # Timeout reached, try filling manually
     print(f"  Timeout esperando auto-preenchimento para {field_name}. Preenchendo manualmente.")
     try:
         field_locator.fill(value)
@@ -184,7 +179,7 @@ def wait_for_autofill_or_fill_manually(page, selector, value, field_name):
         return False
 
 def fill_step2(page, data):
-    print(f"Preenchendo Etapa 2: Endereço para {data["nome_responsavel"]}")
+    print(f"Preenchendo Etapa 2: Endereço para {data["endereco"]}")
     try:
         # Campo 1: endereco
         endereco_selector = "input[name=\"endereco\"]"
@@ -208,18 +203,15 @@ def fill_step2(page, data):
         page.locator(cidade_selector).fill(data["cidade"])
         print("  Campo \"Cidade\" preenchido.")
 
-        # Give some time for potential API call
         time.sleep(1)
         page.keyboard.press("Tab")
         print("  Pressionado Tab após cidade.")
-        time.sleep(1) # Allow focus change and potential API call trigger
+        time.sleep(1)
 
         # Campo 6: Estado (UF) - MUI Select
         estado_value = data["estado"]
-        estado_trigger_selector = "#estado" # Using ID based on mapping
+        estado_trigger_selector = "#estado"
         page.wait_for_selector(estado_trigger_selector, state="visible", timeout=ELEMENT_TIMEOUT)
-        # We will always select the state manually for consistency, 
-        # as checking MUI Select auto-fill is complex.
         print("  Selecionando Estado manualmente...")
         page.locator(estado_trigger_selector).click()
         print("  Dropdown de Estado aberto.")
@@ -237,7 +229,7 @@ def fill_step2(page, data):
         print("Botão \"Próximo\" (Etapa 2) clicado.")        
 
         # Wait for navigation to Etapa 3: Música
-        page.wait_for_selector("text=Música", timeout=15000)
+        page.wait_for_selector("text=Música", timeout=1000)
         print("Navegou para a Etapa 3: Música.")
         time.sleep(1)
 
@@ -245,11 +237,88 @@ def fill_step2(page, data):
         return True
 
     except PlaywrightTimeoutError as e:
-        print(f"Timeout Error durante preenchimento da Etapa 2 para {data["nome_responsavel"]}: {e}")
+        print(f"Timeout Error durante preenchimento da Etapa 2 para {data["endereco"]}: {e}")
         return False
     except Exception as e:
-        print(f"Erro inesperado durante preenchimento da Etapa 2 para {data["nome_responsavel"]}: {e}")
+        print(f"Erro inesperado durante preenchimento da Etapa 2 para {data["endereco"]}: {e}")
         return False
+    
+def fill_step3(page, data):
+    print(f"Preenchendo Etapa 3: Música para {data['nomeartistico']}")
+    try:
+        # Campo 1: nomeartistico
+        nomeartistico_selector = "input[name=\"nomeartistico\"]"
+        page.wait_for_selector(nomeartistico_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(nomeartistico_selector).fill(data["nomeartistico"])
+        print("  Campo \"NomeArtistico\" preenchido.")
+        # Campo 2: musica
+        musica_selector = "input[name=\"musica\"]"
+        page.wait_for_selector(musica_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(musica_selector).fill(data["musica"])
+        print("  Campo \"Música\" preenchido.")        
+        # Campo 3: linkmusica
+        linkmusica_selector = "input[name=\"linkmusica\"]"
+        page.wait_for_selector(linkmusica_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(linkmusica_selector).click()
+        page.locator(linkmusica_selector).type(data["linkmusica"], delay=100)
+        print("  Campo \"LinkMusica\" preenchido.")
+        # Campo 4: gravacao
+        gravacao_selector = "input[name=\"gravacao\"]"
+        page.wait_for_selector(gravacao_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(gravacao_selector).fill(data["gravacao"])
+        print("  Campo \"Gravacao\" preenchido.")
+
+        # Campo 5: autor
+        autor_selector = "input[name=\"autor\"]"
+        page.wait_for_selector(autor_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(autor_selector).fill(data["autor"])
+        print("  Campo \"Autor\" preenchido.")        
+
+        time.sleep(1)
+        page.keyboard.press("Tab")
+        print("  Pressionado Tab após autor.")
+        time.sleep(1)
+
+        # Campo 6: Categoria  - MUI Select
+        categoria_value = data["categoria"]
+        categoria_trigger_selector = "#categoria"
+        page.wait_for_selector(categoria_trigger_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        print("  Selecionando categoria manualmente...")
+        page.locator(categoria_trigger_selector).click()
+        print("  Dropdown de categoria aberto.")
+        categoria_option_selector = f"li[role=\"option\"][data-value=\"{categoria_value}\"]"
+        page.wait_for_selector(categoria_option_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(categoria_option_selector).click()
+        print(f"  Categoria \"{categoria_value}\" selecionada.")
+        time.sleep(0.5)
+
+        # Campo 7: tom
+        tom_selector = "input[name=\"tom\"]"
+        page.wait_for_selector(tom_selector, state="visible", timeout=ELEMENT_TIMEOUT)
+        page.locator(tom_selector).fill(data["tom"])
+        print("  Campo \"Tom\" preenchido.")                
+
+        # Botão Próximo (Etapa 3)
+        print("Clicando em Próximo após Etapa 3")
+        proximo_button_selector = "button:has-text(\"Próximo\")"
+        page.wait_for_selector(proximo_button_selector, timeout=ELEMENT_TIMEOUT)
+        page.locator(proximo_button_selector).click()
+        print("Botão \"Próximo\" (Etapa 3) clicado.")        
+
+        # Wait for navigation to Etapa 4: Dados Finais
+        page.wait_for_selector("text=Dados Finais", timeout=1000)
+        print("Navegou para a Etapa 4: Dados Finais.")
+        time.sleep(1)
+
+        print("Preenchimento da Etapa 3 concluído.")
+        return True
+
+    except PlaywrightTimeoutError as e:
+        print(f"Timeout Error durante preenchimento da Etapa 3 para {data['nomeartistico']}: {e}")
+        return False
+    except Exception as e:
+        print(f"Erro inesperado durante preenchimento da Etapa 3 para {data['nomeartistico']}: {e}")
+        return False    
 
 # Load test data
 try:
@@ -291,8 +360,14 @@ with sync_playwright() as p:
             else:
                 print("Etapa 1 falhou, pulando Etapa 2.")
 
-            if step1_success and step2_success:
-                print(f"Inscrição (Etapas 1 e 2) com {test_data["nome_responsavel"]} processada com sucesso.")
+            # Execute Step 3 only if Step 2 succeeded
+            if step2_success:
+                step3_success = fill_step3(page, test_data)
+            else:
+                print("Etapa 2 falhou, pulando Etapa 3.")                
+
+            if step1_success and step2_success and step3_success:
+                print(f"Inscrição (Etapas 1 e 2 e 3) com {test_data["nomeartistico"]} processada com sucesso.")
             else:
                  print(f"Falha no processamento da inscrição para {test_data["nome_responsavel"]}.")
                  all_tests_passed = False
@@ -301,7 +376,7 @@ with sync_playwright() as p:
             print(f"Erro geral ao processar inscrição para {test_data["nome_responsavel"]}: {e}")
             all_tests_passed = False
         finally:
-            test_passed = step1_success and step2_success
+            test_passed = step1_success and step2_success and step3_success
             print(f"--- Teste {i+1} para {test_data["nome_responsavel"]} concluído (Sucesso: {test_passed}) ---")
 
     print(f"\nTodos os testes foram executados. Sucesso geral: {all_tests_passed}")
