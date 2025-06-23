@@ -6,8 +6,8 @@ import os
 from datetime import datetime
 
 # --- Configuration ---
-#BASE_URL = os.environ.get("TEST_URL", "https://site-festival.vercel.app")
-BASE_URL = "http://localhost:3000"
+# BASE_URL = "http://localhost:3000"
+BASE_URL = "https://site-festival.vercel.app/"
 FORM_PATH = "/Inscricao"
 TARGET_URL = f"{BASE_URL}{FORM_PATH}"
 DATA_FILE = "test_data.json"
