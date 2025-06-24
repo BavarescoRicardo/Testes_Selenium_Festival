@@ -10,7 +10,8 @@ from datetime import datetime
 BASE_URL = "https://site-festival.vercel.app/"
 FORM_PATH = "/Inscricao"
 TARGET_URL = f"{BASE_URL}{FORM_PATH}"
-DATA_FILE = "test_data.json"
+# DATA_FILE = "test_data.json"
+DATA_FILE = "backup_datatest_data.json" # data de teste exportada do banco de dados
 HEADLESS_MODE = True
 ADDRESS_AUTOFILL_WAIT_TIMEOUT = 15
 ADDRESS_AUTOFILL_POLL_INTERVAL = 0.5
@@ -42,7 +43,7 @@ def fill_step1(page, data, participant_index=0):
         data_nascimento_selector = f"input[name=\"participante[{participant_index}].nascimento\"]"
         page.wait_for_selector(data_nascimento_selector, state="visible", timeout=ELEMENT_TIMEOUT)
         try:
-            date_obj = datetime.strptime(data["data_nascimento"], "%d%m%Y")
+            date_obj = datetime.strptime(data["data_nascimento"], "%d/%m/%Y")
             date_iso = date_obj.strftime("%Y-%m-%d")
             page.locator(data_nascimento_selector).fill(date_iso)
             print(f"  Campo \"Data de Nascimento\" preenchido com {date_iso}.")
