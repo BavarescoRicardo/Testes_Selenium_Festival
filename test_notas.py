@@ -13,8 +13,9 @@ HEADLESS_MODE = False
 def login(page):
     print("🔐 Realizando login...")
     page.goto(LOGIN_URL)
-    page.fill('input[name="usuario"]', "ricardo.bavaresco.com")
+    page.fill('input[name="email"]', "ricardo.bavaresco.com")
     page.fill('input[name="senha"]', "admin")
+    
     page.click('button[type="submit"]')
     try:
         page.wait_for_url(GERENCIAMENTO_URL, timeout=ELEMENT_TIMEOUT)
@@ -39,39 +40,39 @@ def navegar_para_historico_notas(page):
 def atribuir_nota(page):
     print("📝 Iniciando atribuição de nota...")
     try:
-        # Abrir modal de nova nota
+        # Abrir modal
         page.click("button:has-text('Nota')")
-        page.wait_for_selector("text=Nova Nota", timeout=ELEMENT_TIMEOUT)
 
-        # Selecionar categoria
-        page.locator("text=Categoria").first.click()
-        page.locator("ul[role='listbox'] li").nth(1).click()  # Seleciona a segunda opção (índice 1)
+        # Esperar pela modal da nota ficar visível
+        modal = page.locator("form.modal-content")
+        modal.wait_for(state="visible", timeout=ELEMENT_TIMEOUT)
 
-        # Selecionar jurado
-        page.locator("text=Jurado").first.click()
-        page.locator("ul[role='listbox'] li").nth(1).click()
+        print("🔽 Selecionando dropdowns...")
 
-        # Selecionar apresentação
-        page.locator("text=Apresentação").first.click()
-        page.locator("ul[role='listbox'] li").nth(1).click()
+        # Selecionar opções nos três selects
+        modal.locator("select").nth(0).select_option(index=1)  # Categoria (segunda opção)
+        modal.locator("select").nth(1).select_option(index=1)  # Jurado
+        modal.locator("select").nth(2).select_option(index=1)  # Apresentação
 
-        # Preencher notas
-        page.fill("input[aria-label='Afinação']", "8.5")
-        page.fill("input[aria-label='Dicção']", "9.0")
-        page.fill("input[aria-label='Ritmo']", "8.0")
-        page.fill("input[aria-label='Interpretação']", "9.5")
+        print("✏️ Preenchendo notas...")
+        # Preencher os campos numéricos
+        modal.locator("input[name='notaAfinacao']").fill("8.5")
+        modal.locator("input[name='notaDiccao']").fill("9.0")
+        modal.locator("input[name='notaRitmo']").fill("8.0")
+        modal.locator("input[name='notaInterpretacao']").fill("9.5")
 
-        # Confirmar
-        page.click("button:has-text('ATRIBUIR NOTA')")
-        time.sleep(2)
+        print("📤 Submetendo nota...")
+        modal.locator("button:has-text('ATRIBUIR NOTA')").click()
+
+        # Tempo para o envio ser processado
+        page.wait_for_timeout(2000)
         print("✅ Nota atribuída com sucesso.")
 
     except Exception as e:
         print(f"❌ Erro durante atribuição de nota: {e}")
-
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=HEADLESS_MODE)
+        browser = p.chromium.launch(headless=HEADLESS_MODE, slow_mo=250)
         context = browser.new_context()
         page = context.new_page()
 
