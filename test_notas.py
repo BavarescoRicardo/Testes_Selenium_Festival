@@ -38,6 +38,7 @@ def navegar_para_historico_notas(page):
         return False
 
 def atribuir_nota(page):
+    page.wait_for_timeout(3000)
     print("📝 Iniciando atribuição de nota...")
     try:
         # Abrir modal
