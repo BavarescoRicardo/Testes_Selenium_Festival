@@ -10,6 +10,15 @@ ELEMENT_TIMEOUT = 10000
 HEADLESS_MODE = False
 # --------------------
 
+def selecionar_autocomplete(page, label_text, opcao_index=0):
+    # Clica no campo de Autocomplete baseado no label
+    input_locator = page.locator(f"label:has-text('{label_text}')").locator("..").locator("input")
+    input_locator.click()
+    
+    # Espera pela lista de opções e seleciona a opção pelo índice
+    page.locator("ul[role='listbox'] li").nth(opcao_index).click()
+
+
 def login(page):
     print("🔐 Realizando login...")
     page.goto(LOGIN_URL)
@@ -38,36 +47,30 @@ def navegar_para_historico_notas(page):
         return False
 
 def atribuir_nota(page):
-    page.wait_for_timeout(3000)
     print("📝 Iniciando atribuição de nota...")
     try:
-        # Abrir modal
         page.click("button:has-text('Nota')")
+        page.wait_for_selector("form.modal-content", timeout=ELEMENT_TIMEOUT)
 
-        # Esperar pela modal da nota ficar visível
-        modal = page.locator("form.modal-content")
-        modal.wait_for(state="visible", timeout=ELEMENT_TIMEOUT)
-
-        print("🔽 Selecionando dropdowns...")
-
-        # Selecionar opções nos três selects
-        modal.locator("select").nth(0).select_option(index=1)  # Categoria (segunda opção)
-        modal.locator("select").nth(1).select_option(index=1)  # Jurado
-        modal.locator("select").nth(2).select_option(index=1)  # Apresentação
+        print("🔽 Selecionando campos de Autocomplete...")
+        selecionar_autocomplete(page, "Categoria")
+        selecionar_autocomplete(page, "Jurado")
+        selecionar_autocomplete(page, "Apresentação")
 
         print("✏️ Preenchendo notas...")
-        # Preencher os campos numéricos
-        modal.locator("input[name='notaAfinacao']").fill("8.5")
-        modal.locator("input[name='notaDiccao']").fill("9.0")
-        modal.locator("input[name='notaRitmo']").fill("8.0")
-        modal.locator("input[name='notaInterpretacao']").fill("9.5")
+        page.fill("input[name='notaAfinacao']", "8.5")
+        page.fill("input[name='notaDiccao']", "9.0")
+        page.fill("input[name='notaRitmo']", "8.0")
+        page.fill("input[name='notaInterpretacao']", "9.5")
 
         print("📤 Submetendo nota...")
-        modal.locator("button:has-text('ATRIBUIR NOTA')").click()
-
-        # Tempo para o envio ser processado
+        page.click("button:has-text('Atribuir Nota')")
         page.wait_for_timeout(2000)
         print("✅ Nota atribuída com sucesso.")
+
+    except Exception as e:
+        print(f"❌ Erro durante atribuição de nota: {e}")
+
 
     except Exception as e:
         print(f"❌ Erro durante atribuição de nota: {e}")
