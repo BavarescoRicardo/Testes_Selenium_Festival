@@ -4,6 +4,7 @@ from typing import Dict, List
 from dataclasses import dataclass
 from datetime import datetime
 import csv
+import random
 
 # --- Configuração ---
 BASE_URL = "https://site-festival.vercel.app"
@@ -110,23 +111,22 @@ class AtribuidorNotas:
             # Esperar carregamento da API (~300ms)
             page.wait_for_timeout(500)
 
-            # Clicar no campo de apresentação
+            # Selecionar apresentação
             page.click("label:has-text('Apresentação') + div", timeout=ELEMENT_TIMEOUT)
             page.wait_for_selector("ul[role='listbox']", timeout=ELEMENT_TIMEOUT)
 
-            # Selecionar a apresentação corretamente mesmo com múltiplas iguais
             apresentacao_locator = page.locator(f"ul[role='listbox'] li:has-text('{apresentacao}')")
             count = apresentacao_locator.count()
             if count == 0:
                 raise Exception(f"Apresentação '{apresentacao}' não encontrada.")
             apresentacao_locator.first.click()
-            
-            # Preencher as notas
+
+            # Notas aleatórias de 6.0 a 10.0 com 1 casa decimal
             notas = {
-                'notaAfinacao': 8.5,
-                'notaDiccao': 9.0,
-                'notaRitmo': 8.0,
-                'notaInterpretacao': 9.5
+                'notaAfinacao': round(random.uniform(6.0, 10.0), 1),
+                'notaDiccao': round(random.uniform(6.0, 10.0), 1),
+                'notaRitmo': round(random.uniform(6.0, 10.0), 1),
+                'notaInterpretacao': round(random.uniform(6.0, 10.0), 1)
             }
 
             for campo, valor in notas.items():
